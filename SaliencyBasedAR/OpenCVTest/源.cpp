@@ -1,29 +1,12 @@
-#include <core\core.hpp>
-#include <imgproc\imgproc.hpp>
-#include <highgui\highgui.hpp>
-//#include<cv\cv.hpp>
 #include <iostream>
-#include "opencv2/imgproc/imgproc.hpp"
-#include "opencv2/highgui/highgui.hpp"
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
+
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+
 using namespace cv;
 using namespace std;
-
-/*
-int main(int argc, char *argv[])
-{
-	string file = "D:\\fig12.4.jpg";//Test image file
-	Mat pic = imread(file);
-
-	namedWindow("res");
-	imshow("res", pic);
-
-	waitKey();
-
-	return 0;
-}
-*/
 
 /// Global variables
 
@@ -68,7 +51,8 @@ void mouseEvent(int event, int x, int y, int flags, void* param)
 
 int main(){
 	string text = "OpenCVtest";
-	string file = "D:\\fig12.4.jpg";//Test image file
+	//string file = "D:\\fig12.4.jpg";//Test image file
+	string file = "C:\\image1.png";//Test image file
 	int fontFace = FONT_HERSHEY_SIMPLEX;
 	double fontScale = 0.5;
 	double alpha = 0.7;
@@ -111,7 +95,7 @@ int main(){
 
 	//set the callback function for any mouse event
 	cvSetMouseCallback("res",mouseEvent,&pic);
-// from main edgemapping
+	// from main edgemapping
 	if (!src.data)
 	{
 		return -1;
@@ -135,10 +119,7 @@ int main(){
 	//show the image
 	imshow("res", img);
 
-
 	waitKey();
 
 	return 0;
-
-
 }
