@@ -49,14 +49,31 @@ void mouseEvent(int event, int x, int y, int flags, void* param)
 	}
 }
 
+//A class for draw label fram
+class DrawLabel
+{
+private:
+	double width;
+	double height;
+	int r, g, b;//color for rect and line
+
+
+public:
+	DrawLabel(double w, double h, int ib, int ig, int ir);//control the size, color of the label, the size of the rect is determined by the size of words;
+	void rect(Mat copy, Point textOrg, int baseline);
+	void li(Mat copy, Point textOrg, int baseline);
+
+};
+
 int main(){
 	string text = "OpenCVtest";
-	//string file = "D:\\fig12.4.jpg";//Test image file
-	string file = "C:\\image1.png";//Test image file
+	string file = "D:\\fig12.4.jpg";//Test image file
+	//string file = "C:\\image1.png";//Test image file
 	int fontFace = FONT_HERSHEY_SIMPLEX;
-	double fontScale = 0.5;
-	double alpha = 0.7;
-	int thickness = 1;
+	double fontScale;//word size
+	double alpha;//control opaque things
+	double thickness;//boldness
+	double a;//a parameter to control whether hide or show the labels
 
 	//Mat img(600, 800, CV_8UC3, Scalar::all(0));
 	Mat img = imread(file);
@@ -64,31 +81,32 @@ int main(){
 	img.copyTo(copy);
 	src = imread(file);
 
-	int baseline = 0;
-	Size textSize = getTextSize(text, fontFace,
-		fontScale, thickness, &baseline);
-	baseline += thickness;
+	cin >> a;
+	if (a > 1)//final we could make a case function...based on different value the ranking retures
+	{
+		thickness = 2.5;
+		fontScale = 0.5;
+		alpha = 0.7;
+		int baseline = 0;
 
-	// center the text
-	Point textOrg((img.cols - textSize.width) / 2,
-		(img.rows + textSize.height) / 2);
-	// draw the box
-	rectangle(copy, textOrg + Point(0, baseline),
-		textOrg + Point(textSize.width, -textSize.height),
-		Scalar(0, 0, 0), -1, 1);
+		Size textSize = getTextSize(text, fontFace,
+			fontScale, thickness, &baseline);
+		baseline += thickness;
 
-	line(copy, Point(0, 0), textOrg + Point(0, baseline), Scalar(0, 0, 0), 2, 8);
+		DrawLabel label1(textSize.width, -textSize.height, 255, 0, 0);
 
-	addWeighted(copy, alpha, img, 1-alpha ,0, img);
+		// center the text,on the leftdown corner of rect of label
+		Point textOrg((img.cols - textSize.width) / 2,
+			(img.rows + textSize.height) / 2);
+		label1.rect(copy, textOrg, baseline);
+		label1.li(copy, textOrg, baseline);
+		addWeighted(copy, alpha, img, 1 - alpha, 0, img);
 
-	// ... and the baseline first
-	/*line(img, textOrg + Point(0, thickness),
-		textOrg + Point(textSize.width, thickness),
-		Scalar(0, 0, 255));*/
+		// then put the text itself
+		putText(img, text, textOrg, fontFace, fontScale,
+			Scalar(255, 255, 255), thickness, 8);
+	}
 
-	// then put the text itself
-	putText(img, text, textOrg, fontFace, fontScale,
-		Scalar::all(255), thickness, 8);
 	//Read image from file
 	IplImage *pic = cvLoadImage("file",1);
 	namedWindow("res");
@@ -122,4 +140,28 @@ int main(){
 	waitKey();
 
 	return 0;
+}
+
+DrawLabel::DrawLabel(double w, double h, int ib, int ig, int ir)
+{
+
+	width = w;
+	height = h;
+	b = ib;
+	g = ig;
+	r = ir;
+}
+
+void DrawLabel::rect(Mat copy, Point textOrg, int baseline)
+{
+	rectangle(copy, textOrg + Point(0, baseline),
+		textOrg + Point(width, height),
+		Scalar(b, g, r), -1, 1);
+}
+//height=textSize.height+baseline
+//width=textSize.width
+//line(copy, Point(0, 0), textOrg + Point(0, baseline), Scalar(1, 0, 0), 2, 8);
+void DrawLabel::li(Mat copy, Point textOrg, int baseline)
+{
+	line(copy, Point(0, 0), textOrg + Point(0, baseline), Scalar(b, g, r), 2, 8);
 }
