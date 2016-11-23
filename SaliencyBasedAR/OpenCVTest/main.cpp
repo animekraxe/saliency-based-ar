@@ -2,8 +2,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef __APPLE__ // Not really for apple, just for Brandon's specific build...
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#else
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
+#endif
 
 using namespace cv;
 using namespace std;
@@ -16,7 +21,7 @@ Mat dst, detected_edges;
 int edgeThresh = 1;
 int lowThreshold;
 int const max_lowThreshold = 100;
-int ratio = 3;
+int inputRatio = 3;
 int kernel_size = 3;
 char* window_name = "Edge Map";
 
@@ -30,7 +35,7 @@ void CannyThreshold(int, void*)
 	blur(src_gray, detected_edges, Size(3, 3));
 
 	/// Canny detector
-	Canny(detected_edges, detected_edges, lowThreshold, lowThreshold*ratio, kernel_size);
+	Canny(detected_edges, detected_edges, lowThreshold, lowThreshold*inputRatio, kernel_size);
 
 	/// Using Canny's output as a mask, we display our result
 	dst = Scalar::all(0);
@@ -65,9 +70,15 @@ public:
 
 };
 
-int main(){
+int main(int argc, char** argv){
 	string text = "OpenCVtest";
-	string file = "D:\\fig12.4.jpg";//Test image file
+    if (argc != 2) {
+        printf("Error. Expect exactly 1 argument");
+        exit(-1);
+    }
+    string file = argv[1];
+
+	//string file = "D:\\fig12.4.jpg";//Test image file
 	//string file = "C:\\image1.png";//Test image file
 	int fontFace = FONT_HERSHEY_SIMPLEX;
 	double fontScale;//word size
@@ -98,12 +109,12 @@ int main(){
 		// center the text,on the leftdown corner of rect of label
 		Point textOrg((img.cols - textSize.width) / 2,
 			(img.rows + textSize.height) / 2);
-		label1.rect(copy, textOrg, baseline);
-		label1.li(copy, textOrg, baseline);
+		label1.rect(copy, Point(100, 100), baseline);
+		label1.li(copy, Point(200, 200), baseline);
 		addWeighted(copy, alpha, img, 1 - alpha, 0, img);
 
 		// then put the text itself
-		putText(img, text, textOrg, fontFace, fontScale,
+		putText(img, text, Point(100, 100), fontFace, fontScale,
 			Scalar(255, 255, 255), thickness, 8);
 	}
 
