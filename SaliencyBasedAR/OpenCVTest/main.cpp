@@ -76,7 +76,11 @@ int main(int argc, char** argv){
         printf("Error. Expect exactly 1 argument");
         exit(-1);
     }
-    string file = argv[1];
+    //string file = argv[1];
+    string item_name = argv[1];
+    string file = item_name + ".jpg";
+    string salmap_file = item_name + "_msss.jpg";
+    string predictions_file = item_name + ".predictions";
 
 	//string file = "D:\\fig12.4.jpg";//Test image file
 	//string file = "C:\\image1.png";//Test image file
@@ -91,6 +95,9 @@ int main(int argc, char** argv){
 	Mat copy;
 	img.copyTo(copy);
 	src = imread(file);
+
+    // Read Saliency Map
+    Mat salmap = imread(salmap_file);
 
 	cin >> a;
 	if (a > 1)//final we could make a case function...based on different value the ranking retures
