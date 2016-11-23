@@ -1,0 +1,5 @@
+PROJECT( saliency_based_ar )
+FIND_PACKAGE( OpenCV )
+SET(MySources main.cpp )
+ADD_EXECUTABLE( saliency_based_ar ${MySources} )
+TARGET_LINK_LIBRARIES( saliency_based_ar ${OpenCV_LIBS} )
