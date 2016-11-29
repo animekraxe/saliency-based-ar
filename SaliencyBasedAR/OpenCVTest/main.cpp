@@ -1,6 +1,8 @@
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
+#include<fstream>
+#include <vector>
 
 #ifdef __APPLE__ // Not really for apple, just for Brandon's specific build...
 #include <opencv2/highgui/highgui.hpp>
@@ -12,6 +14,62 @@
 
 using namespace cv;
 using namespace std;
+
+struct ItemLocationStruct
+{
+	string Lab;
+	int Lef;
+	int Top;
+	int Rig;
+	int Bot;
+};
+
+typedef ItemLocationStruct ItemLocation;
+
+void readFile(string filePath, vector<ItemLocation> itemLocation, ItemLocation item, Mat imgs)
+{
+	ifstream readFileStream;
+	readFileStream.open(filePath);
+	if (!readFileStream)
+	{
+		cout << "While opening a file an error is encountered" << endl;
+	}
+	else
+	{
+		cout << "File is successfully opened" << endl;
+		while (!readFileStream.eof())
+		{
+			string Lab, Lef, Top, Rig, Bot;
+			Scalar intensity = 0;
+			int t = 0;
+			double aver_intensity = 0.0;
+			//ItemLocation item;
+			readFileStream >> Lab >> Lef >> Top >> Rig >> Bot;
+			if (!(Lab.empty() && Lef.empty() && Top.empty() && Rig.empty() && Bot.empty()))
+			{
+				item.Lab = Lab.substr(4);
+				item.Lef = atoi(Lef.substr(4).c_str());
+				item.Top = atoi(Top.substr(4).c_str());
+				item.Rig = atoi(Rig.substr(4).c_str());
+				item.Bot = atoi(Bot.substr(4).c_str());
+
+				for (int j = item.Lef; j<item.Rig; j++)
+				{
+					for (int i = item.Top; i<item.Bot; i++)
+					{
+						//std::cout << "Matrix of image loaded is: " << img.at<uchar>(i, j);
+						intensity.val[0] = intensity.val[0] + imgs.at<uchar>(Point(j, i));
+						t++;
+					}
+				}
+				aver_intensity = intensity.val[0] / t;
+				cout << "Debug: ItemLocation Lab: " << item.Lab << ", Lef: " << item.Lef << ", Top: " << item.Top << ", Rig: " << item.Rig << ", Bot: " << item.Bot << ",aver_intensity:" << aver_intensity << endl;
+				itemLocation.push_back(item);
+			}
+		}
+	}
+}
+
 
 /// Global variables
 
@@ -72,7 +130,7 @@ public:
 
 int main(int argc, char** argv){
 	string text = "OpenCVtest";
-    if (argc != 2) {
+   /* if (argc != 2) {
         printf("Error. Expect exactly 1 argument");
         exit(-1);
     }
@@ -81,9 +139,12 @@ int main(int argc, char** argv){
     string file = item_name + ".jpg";
     string salmap_file = item_name + "_msss.jpg";
     string predictions_file = item_name + ".predictions";
+	*/
 
 	//string file = "D:\\fig12.4.jpg";//Test image file
 	//string file = "C:\\image1.png";//Test image file
+	string file = "D:\\test2.jpg";
+	string files = "D:\\test2_msss.jpg.jpg";
 	int fontFace = FONT_HERSHEY_SIMPLEX;
 	double fontScale;//word size
 	double alpha;//control opaque things
@@ -92,12 +153,19 @@ int main(int argc, char** argv){
 
 	//Mat img(600, 800, CV_8UC3, Scalar::all(0));
 	Mat img = imread(file);
+	Mat imgs = imread(files, 0);//read saliency map in grayscale
+
+	string filePath = "D:\\test2.txt";
+	vector<ItemLocation> itemLocation;
+	ItemLocation item;
+	readFile(filePath, itemLocation, item, imgs);
+
 	Mat copy;
 	img.copyTo(copy);
 	src = imread(file);
 
-    // Read Saliency Map
-    Mat salmap = imread(salmap_file);
+
+ 
 
 	cin >> a;
 	if (a > 1)//final we could make a case function...based on different value the ranking retures
@@ -145,7 +213,7 @@ int main(int argc, char** argv){
 
 	/// Create a window
 	namedWindow(window_name, CV_WINDOW_AUTOSIZE);
-
+	namedWindow("saliency map", CV_WINDOW_AUTOSIZE);
 	/// Create a Trackbar for user to enter threshold
 	createTrackbar("Min Threshold:", window_name, &lowThreshold, max_lowThreshold, CannyThreshold);
 
@@ -154,7 +222,7 @@ int main(int argc, char** argv){
 
 	//show the image
 	imshow("res", img);
-
+	imshow("saliency map", imgs);
 	waitKey();
 
 	return 0;
