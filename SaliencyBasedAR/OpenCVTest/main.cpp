@@ -15,18 +15,103 @@
 using namespace cv;
 using namespace std;
 
-struct ItemLocationStruct
+struct ItemLocation
 {
-	string Lab;
-	int Lef;
-	int Top;
-	int Rig;
-	int Bot;
+	int lef;
+	int top;
+	int rig;
+	int bot;
 };
 
-typedef ItemLocationStruct ItemLocation;
+//A class for draw label fram
+struct ObjectLabel
+{
+	string label;
+	ItemLocation location;
+	double averIntensity;	
 
-void readFile(string filePath, vector<ItemLocation> itemLocation, ItemLocation item, Mat imgs)
+	// Display properties
+	int fontFace;
+	double fontScale; //word size
+	double thickness;
+	double textWidth;
+	double textHeight;
+	int baseline;
+	int r, g, b; // color for rect and line
+
+	// Variables for specific experiments
+	int ranking; // a parameter to control whether hide or show the labels
+
+	ObjectLabel() 
+	{
+		ranking = 2;
+		fontFace = FONT_HERSHEY_SIMPLEX;
+		fontScale = 0.5;
+		thickness = 0.5;
+	}
+
+	//control the size, color of the label, the size of the rect is determined by the size of words;
+	void setLabel(string lab)
+	{
+		label = lab;
+		Size textSize = 
+			getTextSize(label, fontFace, fontScale, thickness, &baseline);
+		textWidth = textSize.width;
+		textHeight = textSize.height;
+	}
+
+	void setColor(int ir, int ig, int ib)
+	{
+		r = ir;
+		g = ig;
+		b = ib;
+	}
+
+	void drawRect(Mat& img)
+	{
+		Point topLeftCorner(location.lef, location.top);
+		Point center = topLeftCorner + Point(textWidth / 2.0, textHeight / 2.0);
+		rectangle(img, topLeftCorner - Point(0, textHeight), topLeftCorner + Point(textWidth, baseline), 
+				  Scalar(b, g, r), -1, 1);
+	}
+
+	void drawLine(Mat& copy)
+	{
+		Point topLeftCorner(location.lef, location.top);
+		Point objectCenter = topLeftCorner + Point((location.rig - location.lef) / 2.0,
+												   (location.bot - location.top) / 2.0);
+		Point labelCenter = topLeftCorner + Point(textWidth / 2.0, baseline);
+		line(copy, objectCenter, labelCenter, Scalar(b, g, r), 2, 8);
+	}
+
+	void drawText(Mat& img)
+	{
+		//double alpha 0.7;//control opaque things
+		//addWeighted(copy, alpha, img, 1 - alpha, 0, img);
+
+		// then put the text itself
+		Point topLeftCorner(location.lef, location.top);
+		putText(img, label, topLeftCorner, fontFace, fontScale,
+				Scalar(255, 255, 255), thickness, 8);
+	}
+
+	void display(Mat& copy)
+	{
+		// final we could make a case function...based on different value the ranking retures
+		if (ranking > 1) 
+		{
+			//int baseline = 0;
+			//baseline += thickness;
+
+			setColor(0, 0, 255);
+			drawRect(copy);
+			drawText(copy);
+			drawLine(copy);
+		}
+	}
+};
+
+void readObjectLabels(string filePath, vector<ObjectLabel>& objects, const Mat& salmap)
 {
 	ifstream readFileStream;
 	readFileStream.open(filePath);
@@ -39,37 +124,42 @@ void readFile(string filePath, vector<ItemLocation> itemLocation, ItemLocation i
 		cout << "File is successfully opened" << endl;
 		while (!readFileStream.eof())
 		{
-			string Lab, Lef, Top, Rig, Bot;
+			string lab, lef, top, rig, bot;
 			Scalar intensity = 0;
-			int t = 0;
-			double aver_intensity = 0.0;
-			//ItemLocation item;
-			readFileStream >> Lab >> Lef >> Top >> Rig >> Bot;
-			if (!(Lab.empty() && Lef.empty() && Top.empty() && Rig.empty() && Bot.empty()))
-			{
-				item.Lab = Lab.substr(4);
-				item.Lef = atoi(Lef.substr(4).c_str());
-				item.Top = atoi(Top.substr(4).c_str());
-				item.Rig = atoi(Rig.substr(4).c_str());
-				item.Bot = atoi(Bot.substr(4).c_str());
+			double averIntensity = 0.0;
 
-				for (int j = item.Lef; j<item.Rig; j++)
+			ObjectLabel obj;
+			readFileStream >> lab >> lef >> top >> rig >> bot;
+			if (!(lab.empty() && lef.empty() && top.empty() && rig.empty() && bot.empty()))
+			{
+				obj.setLabel(lab.substr(4));
+				obj.location.lef = atoi(lef.substr(4).c_str());
+				obj.location.top = atoi(top.substr(4).c_str());
+				obj.location.rig = atoi(rig.substr(4).c_str());
+				obj.location.bot = atoi(bot.substr(4).c_str());
+
+				int t = 0;
+				for (int j = obj.location.lef; j < obj.location.rig; j++)
 				{
-					for (int i = item.Top; i<item.Bot; i++)
+					for (int i = obj.location.top; i < obj.location.bot; i++)
 					{
 						//std::cout << "Matrix of image loaded is: " << img.at<uchar>(i, j);
-						intensity.val[0] = intensity.val[0] + imgs.at<uchar>(Point(j, i));
+						intensity.val[0] = intensity.val[0] + salmap.at<uchar>(Point(j, i));
 						t++;
 					}
 				}
-				aver_intensity = intensity.val[0] / t;
-				cout << "Debug: ItemLocation Lab: " << item.Lab << ", Lef: " << item.Lef << ", Top: " << item.Top << ", Rig: " << item.Rig << ", Bot: " << item.Bot << ",aver_intensity:" << aver_intensity << endl;
-				itemLocation.push_back(item);
+				averIntensity = intensity.val[0] / t;
+				cout << "Debug: ItemLocation Lab: " << obj.label 
+				   	 << ", lef: " << obj.location.lef 
+				   	 << ", top: " << obj.location.top 
+				   	 << ", rig: " << obj.location.rig 
+				   	 << ", bot: " << obj.location.bot 
+				   	 << ", averIntensity:" << averIntensity << endl;
+				objects.push_back(obj);
 			}
 		}
 	}
 }
-
 
 /// Global variables
 
@@ -102,7 +192,6 @@ void CannyThreshold(int, void*)
 	imshow(window_name, dst);
 }
 
-
 void mouseEvent(int event, int x, int y, int flags, void* param)
 {
 	IplImage* pic = (IplImage*) param;
@@ -112,93 +201,42 @@ void mouseEvent(int event, int x, int y, int flags, void* param)
 	}
 }
 
-//A class for draw label fram
-class DrawLabel
-{
-private:
-	double width;
-	double height;
-	int r, g, b;//color for rect and line
-
-
-public:
-	DrawLabel(double w, double h, int ib, int ig, int ir);//control the size, color of the label, the size of the rect is determined by the size of words;
-	void rect(Mat copy, Point textOrg, int baseline);
-	void li(Mat copy, Point textOrg, int baseline);
-
-};
-
 int main(int argc, char** argv){
-	string text = "OpenCVtest";
-   /* if (argc != 2) {
-        printf("Error. Expect exactly 1 argument");
-        exit(-1);
-    }
-    //string file = argv[1];
-    string item_name = argv[1];
-    string file = item_name + ".jpg";
-    string salmap_file = item_name + "_msss.jpg";
-    string predictions_file = item_name + ".predictions";
-	*/
-
-	//string file = "D:\\fig12.4.jpg";//Test image file
-	//string file = "C:\\image1.png";//Test image file
 	string file = "D:\\test2.jpg";
-	string files = "D:\\test2_msss.jpg.jpg";
-	int fontFace = FONT_HERSHEY_SIMPLEX;
-	double fontScale;//word size
-	double alpha;//control opaque things
-	double thickness;//boldness
-	double a;//a parameter to control whether hide or show the labels
+	string salmapFile = "D:\\test2_msss.jpg.jpg";
+	string predictionsFile = "D:\\test2_predictions.txt";
 
-	//Mat img(600, 800, CV_8UC3, Scalar::all(0));
+    if (argc == 2) {
+        string item_name = argv[1];
+        file = item_name + ".jpg";
+	    salmapFile = item_name + "_msss.jpg.jpg";
+	    predictionsFile = item_name + "_predictions.txt";
+    }
+
 	Mat img = imread(file);
-	Mat imgs = imread(files, 0);//read saliency map in grayscale
+	Mat salmap = imread(salmapFile, 0); //read saliency map in grayscale
+	vector<ObjectLabel> objs;
+	readObjectLabels(predictionsFile, objs, salmap);
 
-	string filePath = "D:\\test2.txt";
-	vector<ItemLocation> itemLocation;
-	ItemLocation item;
-	readFile(filePath, itemLocation, item, imgs);
-
-	Mat copy;
-	img.copyTo(copy);
+	//Mat copy;
+	//img.copyTo(copy);
 	src = imread(file);
 
-
- 
-
-	cin >> a;
-	if (a > 1)//final we could make a case function...based on different value the ranking retures
+	for (auto& obj : objs)
 	{
-		thickness = 2.5;
-		fontScale = 0.5;
-		alpha = 0.7;
-		int baseline = 0;
-
-		Size textSize = getTextSize(text, fontFace,
-			fontScale, thickness, &baseline);
-		baseline += thickness;
-
-		DrawLabel label1(textSize.width, -textSize.height, 255, 0, 0);
-
-		// center the text,on the leftdown corner of rect of label
-		Point textOrg((img.cols - textSize.width) / 2,
-			(img.rows + textSize.height) / 2);
-		label1.rect(copy, Point(100, 100), baseline);
-		label1.li(copy, Point(200, 200), baseline);
-		addWeighted(copy, alpha, img, 1 - alpha, 0, img);
-
-		// then put the text itself
-		putText(img, text, Point(100, 100), fontFace, fontScale,
-			Scalar(255, 255, 255), thickness, 8);
+		obj.display(img);
 	}
 
-	//Read image from file
-	IplImage *pic = cvLoadImage("file",1);
-	namedWindow("res");
+	namedWindow("original image", CV_WINDOW_AUTOSIZE);
+	imshow("original image", img);
 
-	//set the callback function for any mouse event
-	cvSetMouseCallback("res",mouseEvent,&pic);
+	//namedWindow("saliency map", CV_WINDOW_AUTOSIZE);
+	//imshow("saliency map", salmap);
+
+	waitKey();
+
+	/*
+	// For Edge Detection
 	// from main edgemapping
 	if (!src.data)
 	{
@@ -212,42 +250,15 @@ int main(int argc, char** argv){
 	cvtColor(src, src_gray, CV_BGR2GRAY);
 
 	/// Create a window
-	namedWindow(window_name, CV_WINDOW_AUTOSIZE);
-	namedWindow("saliency map", CV_WINDOW_AUTOSIZE);
+	//namedWindow(window_name, CV_WINDOW_AUTOSIZE);
+
 	/// Create a Trackbar for user to enter threshold
-	createTrackbar("Min Threshold:", window_name, &lowThreshold, max_lowThreshold, CannyThreshold);
+	//createTrackbar("Min Threshold:", window_name, &lowThreshold, max_lowThreshold, CannyThreshold);
 
 	/// Show the image
-	CannyThreshold(0, 0);
-
-	//show the image
-	imshow("res", img);
-	imshow("saliency map", imgs);
-	waitKey();
+	//CannyThreshold(0, 0);
+	*/
 
 	return 0;
 }
 
-DrawLabel::DrawLabel(double w, double h, int ib, int ig, int ir)
-{
-
-	width = w;
-	height = h;
-	b = ib;
-	g = ig;
-	r = ir;
-}
-
-void DrawLabel::rect(Mat copy, Point textOrg, int baseline)
-{
-	rectangle(copy, textOrg + Point(0, baseline),
-		textOrg + Point(width, height),
-		Scalar(b, g, r), -1, 1);
-}
-//height=textSize.height+baseline
-//width=textSize.width
-//line(copy, Point(0, 0), textOrg + Point(0, baseline), Scalar(1, 0, 0), 2, 8);
-void DrawLabel::li(Mat copy, Point textOrg, int baseline)
-{
-	line(copy, Point(0, 0), textOrg + Point(0, baseline), Scalar(b, g, r), 2, 8);
-}
