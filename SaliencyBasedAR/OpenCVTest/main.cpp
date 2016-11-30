@@ -31,6 +31,9 @@ struct ObjectLabel
 	double averIntensity;	
 
 	// Display properties
+	static const double DEFAULT_FONT_SCALE = 0.5;
+	static const double DEFAULT_FONT_THICKNESS = 0.5;
+
 	int fontFace;
 	double fontScale; //word size
 	double thickness;
@@ -41,18 +44,19 @@ struct ObjectLabel
 
 	// Variables for specific experiments
 	int ranking; // a parameter to control whether hide or show the labels
+	bool resizingEnabled;
 
 	ObjectLabel() 
 	{
-		ranking = 2;
+
 		fontFace = FONT_HERSHEY_SIMPLEX;
-		fontScale = 0.5;
-		thickness = 0.5;
+		fontScale = DEFAULT_FONT_SCALE;
+		thickness = DEFAULT_FONT_THICKNESS;
 	}
 
-    void setAvgIntensity(double averIntensity)
+    void doRankBasedResizing()
     {
-        int judge = averIntensity/10;
+    	int judge = averIntensity/10;
         double newFontScale = 0.0;
         switch(judge) {
             case 0  :
@@ -91,7 +95,18 @@ struct ObjectLabel
         }
         setLabelSize(newFontScale);
     }
-    
+
+    void setAvgIntensity(double averIntensity)
+    {
+    	this->averIntensity = averIntensity;
+    }
+
+	//control the size, color of the label, the size of the rect is determined by the size of words;
+	void setLabel(string lab)
+	{
+		label = lab;
+	}
+
     void setLabelSize(double labelSize)
     {
         fontScale = labelSize;
@@ -101,12 +116,6 @@ struct ObjectLabel
         textHeight = textSize.height;
     }
     
-	//control the size, color of the label, the size of the rect is determined by the size of words;
-	void setLabel(string lab)
-	{
-		label = lab;
-	}
-
 	void setColor(int ir, int ig, int ib)
 	{
 		r = ir;
@@ -155,6 +164,19 @@ struct ObjectLabel
 			drawRect(copy);
 			drawText(copy);
 			drawLine(copy);
+		}
+	}
+
+	void enableResizing(bool val)
+	{
+		resizingEnabled = val;
+		if (resizingEnabled)
+		{
+			doRankBasedResizing();
+		} 
+		else 
+		{
+			setLabelSize(DEFAULT_FONT_SCALE);
 		}
 	}
 };
@@ -273,6 +295,7 @@ int main(int argc, char** argv){
 
 	for (auto& obj : objs)
 	{
+		obj.enableResizing(true);
 		obj.display(img);
 	}
 
