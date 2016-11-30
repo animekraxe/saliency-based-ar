@@ -148,13 +148,10 @@ struct ObjectLabel
 	void display(Mat& img)
 	{
 		// final we could make a case function...based on different value the ranking retures
-		if (ranking > 1) 
-		{
-			setColor(0, 0, 255);
-			drawRect(img);
-			drawText(img);
-			drawLine(img);
-		}
+		setColor(0, 0, 255);
+		drawRect(img);
+		drawText(img);
+		drawLine(img);
 	}
 
 	void enableResizing(bool val)
@@ -187,7 +184,8 @@ struct ObjectLabel
 
 	void setTransparency(Mat& copy, Mat& img)
     {
-    	doRankBasedTransparency();
+    	//doRankBasedTransparency();
+    	alpha = 1.0;
         addWeighted(copy, alpha, img, 1 - alpha, 0, img, -1);
     }
 };
@@ -307,10 +305,10 @@ int main(int argc, char** argv){
 	//src = imread(file);
 	for (auto& obj : objs)
 	{
-		obj.enableResizing(true);
+		obj.enableResizing(false);
 		obj.enableBoldness(false);
-		obj.setTransparency(copy, img);
-        obj.display(copy);
+		//obj.setTransparency(copy, img);
+        obj.display(img);
 	}
 
 	namedWindow("original image", CV_WINDOW_AUTOSIZE);
