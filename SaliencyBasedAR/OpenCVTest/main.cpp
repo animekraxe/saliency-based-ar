@@ -50,14 +50,61 @@ struct ObjectLabel
 		thickness = 0.5;
 	}
 
+    void setAvgIntensity(double averIntensity)
+    {
+        int judge = averIntensity/10;
+        double newFontScale = 0.0;
+        switch(judge) {
+            case 0  :
+                newFontScale=0;
+                break;
+            case 1  :
+                newFontScale=0.5;
+                break;
+            case 2  :
+                newFontScale=0.6;
+                break;
+            case 3  :
+                newFontScale=0.7;
+                break;
+            case 4  :
+                newFontScale=0.8;
+                break;
+            case 5  :
+                newFontScale=0.9;
+                break;
+            case 6  :
+                newFontScale=1.0;
+                break;
+            case 7  :
+                newFontScale=1.1;
+                break;
+            case 8  :
+                newFontScale=1.2;
+                break;
+            case 9  :
+                newFontScale=1.3;
+                break;
+            case 10  :
+                newFontScale=1.4;
+                break;
+        }
+        setLabelSize(newFontScale);
+    }
+    
+    void setLabelSize(double labelSize)
+    {
+        fontScale = labelSize;
+        Size textSize =
+            getTextSize(label, fontFace, fontScale, thickness, &baseline);
+        textWidth = textSize.width;
+        textHeight = textSize.height;
+    }
+    
 	//control the size, color of the label, the size of the rect is determined by the size of words;
 	void setLabel(string lab)
 	{
 		label = lab;
-		Size textSize = 
-			getTextSize(label, fontFace, fontScale, thickness, &baseline);
-		textWidth = textSize.width;
-		textHeight = textSize.height;
 	}
 
 	void setColor(int ir, int ig, int ib)
@@ -90,7 +137,8 @@ struct ObjectLabel
 		//addWeighted(copy, alpha, img, 1 - alpha, 0, img);
 
 		// then put the text itself
-		Point topLeftCorner(location.lef, location.top);
+
+        Point topLeftCorner(location.lef, location.top);
 		putText(img, label, topLeftCorner, fontFace, fontScale,
 				Scalar(255, 255, 255), thickness, 8);
 	}
@@ -149,6 +197,7 @@ void readObjectLabels(string filePath, vector<ObjectLabel>& objects, const Mat& 
 					}
 				}
 				averIntensity = intensity.val[0] / t;
+                obj.setAvgIntensity(averIntensity);
 				cout << "Debug: ItemLocation Lab: " << obj.label 
 				   	 << ", lef: " << obj.location.lef 
 				   	 << ", top: " << obj.location.top 
