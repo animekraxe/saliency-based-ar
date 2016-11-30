@@ -39,6 +39,7 @@ struct ObjectLabel
 	double thickness;
 	double textWidth;
 	double textHeight;
+    double alpha;
 	int baseline;
 	int r, g, b; // color for rect and line
 
@@ -57,42 +58,18 @@ struct ObjectLabel
     void doRankBasedResizing()
     {
         double newFontScale = 0.0;
+        double newAlpha = 0.0;
         switch(ranking) {
             case 0  :
                 newFontScale=0;
+                newAlpha=0;
                 break;
-            case 1  :
-                newFontScale=0.5;
-                break;
-            case 2  :
-                newFontScale=0.6;
-                break;
-            case 3  :
-                newFontScale=0.7;
-                break;
-            case 4  :
-                newFontScale=0.8;
-                break;
-            case 5  :
-                newFontScale=0.9;
-                break;
-            case 6  :
-                newFontScale=1.0;
-                break;
-            case 7  :
-                newFontScale=1.1;
-                break;
-            case 8  :
-                newFontScale=1.2;
-                break;
-            case 9  :
-                newFontScale=1.3;
-                break;
-            case 10  :
-                newFontScale=1.4;
-                break;
+            default :
+                newFontScale=0.5+(judge-1)*0.1;
+                newAlpha=0.2+(judge-1)*0.1;
         }
         setLabelSize(newFontScale);
+        setLabelAlpha(newAlpha);
     }
 
     void setAvgIntensity(double averIntensity)
@@ -116,6 +93,23 @@ struct ObjectLabel
         textHeight = textSize.height;
     }
     
+    void setLabelAlpha(double labelTransparent)
+    {
+        alpha = labelTransparent;
+        
+    }
+    
+    void setLabelTransparent(Mat& copy,Mat& img)
+    {
+        addWeighted(copy, alpha, img, 1 - alpha, 0, img, -1);
+    }
+    
+	//control the size, color of the label, the size of the rect is determined by the size of words;
+	void setLabel(string lab)
+	{
+		label = lab;
+	}
+
 	void setColor(int ir, int ig, int ib)
 	{
 		r = ir;
@@ -123,11 +117,11 @@ struct ObjectLabel
 		b = ib;
 	}
 
-	void drawRect(Mat& img)
+	void drawRect(Mat& copy)
 	{
 		Point topLeftCorner(location.lef, location.top);
 		Point center = topLeftCorner + Point(textWidth / 2.0, textHeight / 2.0);
-		rectangle(img, topLeftCorner - Point(0, textHeight), topLeftCorner + Point(textWidth, baseline), 
+		rectangle(copy, topLeftCorner - Point(0, textHeight), topLeftCorner + Point(textWidth, baseline),
 				  Scalar(b, g, r), -1, 1);
 	}
 
@@ -142,8 +136,6 @@ struct ObjectLabel
 
 	void drawText(Mat& img)
 	{
-		//double alpha 0.7;//control opaque things
-		//addWeighted(copy, alpha, img, 1 - alpha, 0, img);
 
 		// then put the text itself
 
@@ -248,34 +240,35 @@ char* window_name = "Edge Map";
 * @function CannyThreshold
 * @brief Trackbar callback - Canny thresholds input with a ratio 1:3
 */
-void CannyThreshold(int, void*)
-{
-	/// Reduce noise with a kernel 3x3
-	blur(src_gray, detected_edges, Size(3, 3));
-
-	/// Canny detector
-	Canny(detected_edges, detected_edges, lowThreshold, lowThreshold*inputRatio, kernel_size);
-
-	/// Using Canny's output as a mask, we display our result
-	dst = Scalar::all(0);
-
-	src.copyTo(dst, detected_edges);
-	imshow(window_name, dst);
-}
-
-void mouseEvent(int event, int x, int y, int flags, void* param)
-{
-	IplImage* pic = (IplImage*) param;
-	if (event == CV_EVENT_LBUTTONDOWN)
-	{
-		cout << "the point is:" << x << "," << y << endl;
-	}
-}
+//void CannyThreshold(int, void*)
+//{
+//	/// Reduce noise with a kernel 3x3
+//	blur(src_gray, detected_edges, Size(3, 3));
+//
+//	/// Canny detector
+//	Canny(detected_edges, detected_edges, lowThreshold, lowThreshold*inputRatio, kernel_size);
+//
+//	/// Using Canny's output as a mask, we display our result
+//	dst = Scalar::all(0);
+//
+//	src.copyTo(dst, detected_edges);
+//	imshow(window_name, dst);
+//}
+//
+//void mouseEvent(int event, int x, int y, int flags, void* param)
+//{
+//	IplImage* pic = (IplImage*) param;
+//	if (event == CV_EVENT_LBUTTONDOWN)
+//	{
+//		cout << "the point is:" << x << "," << y << endl;
+//	}
+//}
 
 int main(int argc, char** argv){
-	string file = "D:\\test2.jpg";
-	string salmapFile = "D:\\test2_msss.jpg.jpg";
-	string predictionsFile = "D:\\test2_predictions.txt";
+	string file = "D:\\test1.jpg";
+	string salmapFile = "D:\\test1_msss.jpg.jpg";
+	string predictionsFile = "D:\\test1_predictions.txt";
+    
 
     if (argc == 2) {
         string item_name = argv[1];
@@ -284,19 +277,20 @@ int main(int argc, char** argv){
 	    predictionsFile = item_name + "_predictions.txt";
     }
 
-	Mat img = imread(file);
+
 	Mat salmap = imread(salmapFile, 0); //read saliency map in grayscale
 	vector<ObjectLabel> objs;
 	readObjectLabels(predictionsFile, objs, salmap);
 
-	//Mat copy;
-	//img.copyTo(copy);
-	src = imread(file);
-
+    Mat img = imread(file);
+    Mat copy;
+    img.copyTo(copy);
+	//src = imread(file);
 	for (auto& obj : objs)
 	{
 		obj.enableResizing(true);
-		obj.display(img);
+        obj.display(copy);
+        obj.setLabelTransparent(copy, img);
 	}
 
 	namedWindow("original image", CV_WINDOW_AUTOSIZE);
