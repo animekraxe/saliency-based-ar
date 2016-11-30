@@ -57,19 +57,15 @@ struct ObjectLabel
 
     void doRankBasedResizing()
     {
-		double newAlpha = 0.0;
     	if (ranking == 0)
     	{
     		fontScale = 0.0;
-    		newAlpha=0;
     	}
     	else
     	{
     		fontScale = 0.4 + (0.1 * ranking);
-    		newAlpha=0.2+(ranking-1)*0.1;
     	}
         updateSize();
-        setLabelAlpha(newAlpha);
     }
 
     void doRankBasedBoldness()
@@ -81,6 +77,18 @@ struct ObjectLabel
     	else 
     	{
     		thickness = 0.4 + (0.2 * ranking);
+    	}
+    }
+
+    void doRankBasedTransparency()
+    {
+		if (ranking == 0)
+    	{
+    		alpha = 0.0;
+    	} 
+    	else 
+    	{
+    		alpha = 0.2 + (ranking - 1) * 0.1;
     	}
     }
 
@@ -104,16 +112,6 @@ struct ObjectLabel
 		label = lab;
 		updateSize();
 	}
-    
-    void setLabelAlpha(double labelTransparent)
-    {
-        alpha = labelTransparent;
-    }
-    
-    void setLabelTransparent(Mat& copy,Mat& img)
-    {
-        addWeighted(copy, alpha, img, 1 - alpha, 0, img, -1);
-    }
 
 	void setColor(int ir, int ig, int ib)
 	{
@@ -141,26 +139,21 @@ struct ObjectLabel
 
 	void drawText(Mat& img)
 	{
-
 		// then put the text itself
-
         Point topLeftCorner(location.lef, location.top);
 		putText(img, label, topLeftCorner, fontFace, fontScale,
 				Scalar(255, 255, 255), thickness, 8);
 	}
 
-	void display(Mat& copy)
+	void display(Mat& img)
 	{
 		// final we could make a case function...based on different value the ranking retures
 		if (ranking > 1) 
 		{
-			//int baseline = 0;
-			//baseline += thickness;
-
 			setColor(0, 0, 255);
-			drawRect(copy);
-			drawText(copy);
-			drawLine(copy);
+			drawRect(img);
+			drawText(img);
+			drawLine(img);
 		}
 	}
 
@@ -191,6 +184,12 @@ struct ObjectLabel
 			updateSize();
 		}
 	}
+
+	void setTransparency(Mat& copy, Mat& img)
+    {
+    	doRankBasedTransparency();
+        addWeighted(copy, alpha, img, 1 - alpha, 0, img, -1);
+    }
 };
 
 void readObjectLabels(string filePath, vector<ObjectLabel>& objects, const Mat& salmap)
@@ -309,9 +308,9 @@ int main(int argc, char** argv){
 	for (auto& obj : objs)
 	{
 		obj.enableResizing(true);
-		obj.enableBoldness(true);
+		obj.enableBoldness(false);
+		obj.setTransparency(copy, img);
         obj.display(copy);
-        obj.setLabelTransparent(copy, img);
 	}
 
 	namedWindow("original image", CV_WINDOW_AUTOSIZE);
