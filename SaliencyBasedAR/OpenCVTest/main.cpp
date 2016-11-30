@@ -56,9 +56,8 @@ struct ObjectLabel
 
     void doRankBasedResizing()
     {
-    	int judge = averIntensity/10;
         double newFontScale = 0.0;
-        switch(judge) {
+        switch(ranking) {
             case 0  :
                 newFontScale=0;
                 break;
@@ -99,6 +98,7 @@ struct ObjectLabel
     void setAvgIntensity(double averIntensity)
     {
     	this->averIntensity = averIntensity;
+    	ranking = averIntensity / 10;
     }
 
 	//control the size, color of the label, the size of the rect is determined by the size of words;
