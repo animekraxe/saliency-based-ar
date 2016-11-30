@@ -46,10 +46,10 @@ struct ObjectLabel
 	// Variables for specific experiments
 	int ranking; // a parameter to control whether hide or show the labels
 	bool resizingEnabled;
+	bool boldnessEnabled;
 
 	ObjectLabel() 
 	{
-
 		fontFace = FONT_HERSHEY_SIMPLEX;
 		fontScale = DEFAULT_FONT_SCALE;
 		thickness = DEFAULT_FONT_THICKNESS;
@@ -57,19 +57,39 @@ struct ObjectLabel
 
     void doRankBasedResizing()
     {
-        double newFontScale = 0.0;
-        double newAlpha = 0.0;
-        switch(ranking) {
-            case 0  :
-                newFontScale=0;
-                newAlpha=0;
-                break;
-            default :
-                newFontScale=0.5+(judge-1)*0.1;
-                newAlpha=0.2+(judge-1)*0.1;
-        }
-        setLabelSize(newFontScale);
+		double newAlpha = 0.0;
+    	if (ranking == 0)
+    	{
+    		fontScale = 0.0;
+    		newAlpha=0;
+    	}
+    	else
+    	{
+    		fontScale = 0.4 + (0.1 * ranking);
+    		newAlpha=0.2+(ranking-1)*0.1;
+    	}
+        updateSize();
         setLabelAlpha(newAlpha);
+    }
+
+    void doRankBasedBoldness()
+    {
+    	if (ranking == 0)
+    	{
+    		thickness = 0.0;
+    	} 
+    	else 
+    	{
+    		thickness = 0.4 + (0.2 * ranking);
+    	}
+    }
+
+    void updateSize()
+    {
+        Size textSize =
+            getTextSize(label, fontFace, fontScale, thickness, &baseline);
+        textWidth = textSize.width;
+        textHeight = textSize.height;
     }
 
     void setAvgIntensity(double averIntensity)
@@ -82,33 +102,18 @@ struct ObjectLabel
 	void setLabel(string lab)
 	{
 		label = lab;
+		updateSize();
 	}
-
-    void setLabelSize(double labelSize)
-    {
-        fontScale = labelSize;
-        Size textSize =
-            getTextSize(label, fontFace, fontScale, thickness, &baseline);
-        textWidth = textSize.width;
-        textHeight = textSize.height;
-    }
     
     void setLabelAlpha(double labelTransparent)
     {
         alpha = labelTransparent;
-        
     }
     
     void setLabelTransparent(Mat& copy,Mat& img)
     {
         addWeighted(copy, alpha, img, 1 - alpha, 0, img, -1);
     }
-    
-	//control the size, color of the label, the size of the rect is determined by the size of words;
-	void setLabel(string lab)
-	{
-		label = lab;
-	}
 
 	void setColor(int ir, int ig, int ib)
 	{
@@ -168,7 +173,22 @@ struct ObjectLabel
 		} 
 		else 
 		{
-			setLabelSize(DEFAULT_FONT_SCALE);
+			fontScale = DEFAULT_FONT_SCALE;
+			updateSize();
+		}
+	}
+
+	void enableBoldness(bool val)
+	{
+		boldnessEnabled = val;
+		if (boldnessEnabled) 
+		{
+			doRankBasedBoldness();
+		}
+		else
+		{
+			thickness = DEFAULT_FONT_THICKNESS;
+			updateSize();
 		}
 	}
 };
@@ -289,6 +309,7 @@ int main(int argc, char** argv){
 	for (auto& obj : objs)
 	{
 		obj.enableResizing(true);
+		obj.enableBoldness(true);
         obj.display(copy);
         obj.setLabelTransparent(copy, img);
 	}
