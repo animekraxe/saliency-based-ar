@@ -148,10 +148,10 @@ struct ObjectLabel
 	void display(Mat& img)
 	{
 		// final we could make a case function...based on different value the ranking retures
-		setColor(0, 0, 255);
-		drawRect(img);
-		drawText(img);
-		drawLine(img);
+		//setColor(0, 0, 255);
+		//drawRect(img);
+		//drawText(img);
+		//drawLine(img);
 	}
 
 	void enableResizing(bool val)
@@ -182,11 +182,21 @@ struct ObjectLabel
 		}
 	}
 
-	void setTransparency(Mat& copy, Mat& img)
+    cv::Mat doLabelBasedimgCut(Mat& img)
+    {
+        Mat roi;
+        Point topLeftCorner(location.lef, location.top);
+        roi=img(cv::Rect(topLeftCorner - Point(0, textHeight), topLeftCorner + Point(textWidth, baseline)));
+        return roi;
+    }
+    
+	void setTransparency(Mat& img)
     {
     	//doRankBasedTransparency();
-    	alpha = 0.5;
-        addWeighted(copy, alpha, img, 1 - alpha, 0, img, -1);
+        Mat roi = doLabelBasedimgCut(img);
+        Mat color(roi.size(), CV_8UC3, cv::Scalar(255, 0, 0));
+    	alpha = 0.2;
+        addWeighted(color, alpha, roi, 1 - alpha, 0, roi, -1);
     }
 };
 
@@ -300,15 +310,16 @@ int main(int argc, char** argv){
 	readObjectLabels(predictionsFile, objs, salmap);
 
     Mat img = imread(file);
-    Mat copy;
-    img.copyTo(copy);
+    
+//    Mat copy;
+//    img.copyTo(copy);
 	//src = imread(file);
 	for (auto& obj : objs)
 	{
 		obj.enableResizing(false);
 		obj.enableBoldness(false);
-        obj.display(copy);
-        obj.setTransparency(copy, img);
+        obj.display(img);
+        obj.setTransparency(img);
 	}
 
 	namedWindow("original image", CV_WINDOW_AUTOSIZE);
