@@ -48,6 +48,7 @@ struct ObjectLabel
 	int ranking; // A parameter to control whether hide or show the labels
 	bool resizingEnabled;
 	bool boldnessEnabled;
+	bool transparencyEnabled;
 	bool forceDisplay;
 
 	ObjectLabel() 
@@ -101,21 +102,39 @@ struct ObjectLabel
 		b = ib;
 	}
 
-	void drawRect(Mat& copy)
+    cv::Mat doLabelBasedimgCut(Mat& img)
+    {
+        Mat roi;
+        Point topLeftCorner(location.lef, location.top);
+        roi = img(cv::Rect(topLeftCorner - Point(0, textHeight),
+        		  topLeftCorner + Point(textWidth, baseline)));
+        return roi;
+    }
+
+	void drawRect(Mat& img)
 	{
-		Point topLeftCorner(location.lef, location.top);
-		Point center = topLeftCorner + Point(textWidth / 2.0, textHeight / 2.0);
-		rectangle(copy, topLeftCorner - Point(0, textHeight), topLeftCorner + Point(textWidth, baseline),
-				  Scalar(b, g, r), -1, 1);
+		if (transparencyEnabled)
+		{
+			Mat roi = doLabelBasedimgCut(img);
+	        Mat color(roi.size(), CV_8UC3, cv::Scalar(b, g, r));
+	        addWeighted(color, alpha, roi, 1 - alpha, 0, roi, -1);
+	    }
+	   	else
+	   	{
+			Point topLeftCorner(location.lef, location.top);
+			Point center = topLeftCorner + Point(textWidth / 2.0, textHeight / 2.0);
+			rectangle(img, topLeftCorner - Point(0, textHeight),
+					  topLeftCorner + Point(textWidth, baseline), Scalar(b, g, r), -1, 1);
+		}
 	}
 
-	void drawLine(Mat& copy)
+	void drawLine(Mat& img)
 	{
 		Point topLeftCorner(location.lef, location.top);
 		Point objectCenter = topLeftCorner + Point((location.rig - location.lef) / 2.0,
 												   (location.bot - location.top) / 2.0);
 		Point labelCenter = topLeftCorner + Point(textWidth / 2.0, baseline);
-		line(copy, objectCenter, labelCenter, Scalar(b, g, r), 2, 8);
+		line(img, objectCenter, labelCenter, Scalar(b, g, r), 2, 8);
 	}
 
 	void drawText(Mat& img)
@@ -131,10 +150,10 @@ struct ObjectLabel
 		if (ranking >= DISPLAY_THRESHOLD || forceDisplay)
 		{
 			// final we could make a case function...based on different value the ranking retures
-			//setColor(0, 0, 255);
-			//drawRect(img);
-			//drawText(img);
-			//drawLine(img);
+			setColor(0, 0, 255);
+			drawRect(img);
+			drawText(img);
+			drawLine(img);
 		}
 	}
 
@@ -165,22 +184,14 @@ struct ObjectLabel
 			updateSize();
 		}
 	}
-
-    cv::Mat doLabelBasedimgCut(Mat& img)
-    {
-        Mat roi;
-        Point topLeftCorner(location.lef, location.top);
-        roi=img(cv::Rect(topLeftCorner - Point(0, textHeight), topLeftCorner + Point(textWidth, baseline)));
-        return roi;
-    }
     
-	void setTransparency(Mat& img)
+	void enableTransparency(bool val)
     {
-    	//doRankBasedTransparency();
-        Mat roi = doLabelBasedimgCut(img);
-        Mat color(roi.size(), CV_8UC3, cv::Scalar(255, 0, 0));
-    	alpha = 0.2;
-        addWeighted(color, alpha, roi, 1 - alpha, 0, roi, -1);
+    	transparencyEnabled = val;
+    	if (transparencyEnabled) 
+    	{
+    		doRankBasedTransparency();
+    	}
     }
 
 	void registerMouseInput(int x, int y)
@@ -283,9 +294,9 @@ int main(int argc, char** argv){
 		{
 			obj.enableResizing(false);
 			obj.enableBoldness(false);
+			obj.enableTransparency(true);
 			obj.registerMouseInput(mouseX, mouseY);
 	        obj.display(img);
-	        //obj.setTransparency(img);
 	        imshow("original image", img);   
 		}
 	} while(waitKey(16) == -1);
