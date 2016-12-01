@@ -1,7 +1,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
-#include<fstream>
+#include <fstream>
 #include <vector>
 
 #ifdef __APPLE__ // Not really for apple, just for Brandon's specific build...
@@ -23,7 +23,7 @@ struct ItemLocation
 	int bot;
 };
 
-//A class for draw label fram
+// A class for draw label fram
 struct ObjectLabel
 {
 	string label;
@@ -33,9 +33,10 @@ struct ObjectLabel
 	// Display properties
 	static const double DEFAULT_FONT_SCALE = 0.5;
 	static const double DEFAULT_FONT_THICKNESS = 0.5;
+	static const double DISPLAY_THRESHOLD = 2; // Must be >= 2 to display
 
 	int fontFace;
-	double fontScale; //word size
+	double fontScale; // Word size
 	double thickness;
 	double textWidth;
 	double textHeight;
@@ -44,9 +45,10 @@ struct ObjectLabel
 	int r, g, b; // color for rect and line
 
 	// Variables for specific experiments
-	int ranking; // a parameter to control whether hide or show the labels
+	int ranking; // A parameter to control whether hide or show the labels
 	bool resizingEnabled;
 	bool boldnessEnabled;
+	bool forceDisplay;
 
 	ObjectLabel() 
 	{
@@ -57,39 +59,18 @@ struct ObjectLabel
 
     void doRankBasedResizing()
     {
-    	if (ranking == 0)
-    	{
-    		fontScale = 0.0;
-    	}
-    	else
-    	{
-    		fontScale = 0.4 + (0.1 * ranking);
-    	}
+    	fontScale = ranking == 0 ? 0.0f : 0.4f + (0.1f * ranking);
         updateSize();
     }
 
     void doRankBasedBoldness()
     {
-    	if (ranking == 0)
-    	{
-    		thickness = 0.0;
-    	} 
-    	else 
-    	{
-    		thickness = 0.4 + (0.2 * ranking);
-    	}
+    	thickness = ranking == 0 ? 0.0f : 0.4f + (0.2f * ranking);
     }
 
     void doRankBasedTransparency()
     {
-		if (ranking == 0)
-    	{
-    		alpha = 0.0;
-    	} 
-    	else 
-    	{
-    		alpha = 0.2 + (ranking - 1) * 0.1;
-    	}
+    	alpha = ranking == 0 ? 0.0f : 0.2f + (ranking - 1) * 0.1f;
     }
 
     void updateSize()
@@ -106,7 +87,7 @@ struct ObjectLabel
     	ranking = averIntensity / 10;
     }
 
-	//control the size, color of the label, the size of the rect is determined by the size of words;
+	// Control the size, color of the label, the size of the rect is determined by the size of words;
 	void setLabel(string lab)
 	{
 		label = lab;
@@ -147,11 +128,14 @@ struct ObjectLabel
 
 	void display(Mat& img)
 	{
-		// final we could make a case function...based on different value the ranking retures
-		//setColor(0, 0, 255);
-		//drawRect(img);
-		//drawText(img);
-		//drawLine(img);
+		if (ranking >= DISPLAY_THRESHOLD || forceDisplay)
+		{
+			// final we could make a case function...based on different value the ranking retures
+			//setColor(0, 0, 255);
+			//drawRect(img);
+			//drawText(img);
+			//drawLine(img);
+		}
 	}
 
 	void enableResizing(bool val)
@@ -198,6 +182,12 @@ struct ObjectLabel
     	alpha = 0.2;
         addWeighted(color, alpha, roi, 1 - alpha, 0, roi, -1);
     }
+
+	void registerMouseInput(int x, int y)
+	{
+		forceDisplay = x > location.lef && x < location.rig &&
+					   y > location.top && y < location.bot;
+	}
 };
 
 void readObjectLabels(string filePath, vector<ObjectLabel>& objects, const Mat& salmap)
@@ -232,7 +222,6 @@ void readObjectLabels(string filePath, vector<ObjectLabel>& objects, const Mat& 
 				{
 					for (int i = obj.location.top; i < obj.location.bot; i++)
 					{
-						//std::cout << "Matrix of image loaded is: " << img.at<uchar>(i, j);
 						intensity.val[0] = intensity.val[0] + salmap.at<uchar>(Point(j, i));
 						t++;
 					}
@@ -251,51 +240,23 @@ void readObjectLabels(string filePath, vector<ObjectLabel>& objects, const Mat& 
 	}
 }
 
-/// Global variables
+// ************ Global State **********
+int mouseX = 0;
+int mouseY = 0;
 
-Mat src, src_gray;
-Mat dst, detected_edges;
-
-int edgeThresh = 1;
-int lowThreshold;
-int const max_lowThreshold = 100;
-int inputRatio = 3;
-int kernel_size = 3;
-char* window_name = "Edge Map";
-
-/**
-* @function CannyThreshold
-* @brief Trackbar callback - Canny thresholds input with a ratio 1:3
-*/
-//void CannyThreshold(int, void*)
-//{
-//	/// Reduce noise with a kernel 3x3
-//	blur(src_gray, detected_edges, Size(3, 3));
-//
-//	/// Canny detector
-//	Canny(detected_edges, detected_edges, lowThreshold, lowThreshold*inputRatio, kernel_size);
-//
-//	/// Using Canny's output as a mask, we display our result
-//	dst = Scalar::all(0);
-//
-//	src.copyTo(dst, detected_edges);
-//	imshow(window_name, dst);
-//}
-//
-//void mouseEvent(int event, int x, int y, int flags, void* param)
-//{
-//	IplImage* pic = (IplImage*) param;
-//	if (event == CV_EVENT_LBUTTONDOWN)
-//	{
-//		cout << "the point is:" << x << "," << y << endl;
-//	}
-//}
+void mouseFunc(int event, int x, int y, int flags, void* userdata)
+{
+	if (event == EVENT_MOUSEMOVE)
+	{
+		mouseX = x;
+		mouseY = y;
+	}
+}
 
 int main(int argc, char** argv){
 	string file = "D:\\test1.jpg";
 	string salmapFile = "D:\\test1_msss.jpg.jpg";
 	string predictionsFile = "D:\\test1_predictions.txt";
-    
 
     if (argc == 2) {
         string item_name = argv[1];
@@ -304,55 +265,30 @@ int main(int argc, char** argv){
 	    predictionsFile = item_name + "_predictions.txt";
     }
 
-
-	Mat salmap = imread(salmapFile, 0); //read saliency map in grayscale
+	// Read saliency map in grayscale
+	Mat salmap = imread(salmapFile, 0); 
 	vector<ObjectLabel> objs;
 	readObjectLabels(predictionsFile, objs, salmap);
 
-    Mat img = imread(file);
-    
-//    Mat copy;
-//    img.copyTo(copy);
-	//src = imread(file);
-	for (auto& obj : objs)
-	{
-		obj.enableResizing(false);
-		obj.enableBoldness(false);
-        obj.display(img);
-        obj.setTransparency(img);
-	}
+    Mat original = imread(file);
 
+    // Display loop
+    Mat img;
 	namedWindow("original image", CV_WINDOW_AUTOSIZE);
-	imshow("original image", img);
-
-	//namedWindow("saliency map", CV_WINDOW_AUTOSIZE);
-	//imshow("saliency map", salmap);
-
-	waitKey();
-
-	/*
-	// For Edge Detection
-	// from main edgemapping
-	if (!src.data)
+	cvSetMouseCallback("original image", &mouseFunc, NULL);
+	do
 	{
-		return -1;
-	}
-
-	/// Create a matrix of the same type and size as src (for dst)
-	dst.create(src.size(), src.type());
-
-	/// Convert the image to grayscale
-	cvtColor(src, src_gray, CV_BGR2GRAY);
-
-	/// Create a window
-	//namedWindow(window_name, CV_WINDOW_AUTOSIZE);
-
-	/// Create a Trackbar for user to enter threshold
-	//createTrackbar("Min Threshold:", window_name, &lowThreshold, max_lowThreshold, CannyThreshold);
-
-	/// Show the image
-	//CannyThreshold(0, 0);
-	*/
+		original.copyTo(img);
+		for (ObjectLabel& obj : objs)
+		{
+			obj.enableResizing(false);
+			obj.enableBoldness(false);
+			obj.registerMouseInput(mouseX, mouseY);
+	        obj.display(img);
+	        //obj.setTransparency(img);
+	        imshow("original image", img);   
+		}
+	} while(waitKey(16) == -1);
 
 	return 0;
 }
