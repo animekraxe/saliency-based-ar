@@ -185,7 +185,7 @@ struct ObjectLabel
 	void setTransparency(Mat& copy, Mat& img)
     {
     	//doRankBasedTransparency();
-    	alpha = 1.0;
+    	alpha = 0.5;
         addWeighted(copy, alpha, img, 1 - alpha, 0, img, -1);
     }
 };
@@ -307,8 +307,8 @@ int main(int argc, char** argv){
 	{
 		obj.enableResizing(false);
 		obj.enableBoldness(false);
-		//obj.setTransparency(copy, img);
-        obj.display(img);
+        obj.display(copy);
+        obj.setTransparency(copy, img);
 	}
 
 	namedWindow("original image", CV_WINDOW_AUTOSIZE);
