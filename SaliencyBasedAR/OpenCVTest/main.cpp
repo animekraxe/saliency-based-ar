@@ -292,7 +292,7 @@ int main(int argc, char** argv){
 	string salmapFile = "D:\\test1_msss.jpg.jpg";
 	string predictionsFile = "D:\\test1_predictions.txt";
 
-    if (argc == 2) {
+    if (argc == 7) {
         string item_name = argv[1];
         file = item_name + ".jpg";
 	    //salmapFile = item_name + "_msss.jpg.jpg";
@@ -323,13 +323,14 @@ int main(int argc, char** argv){
 		original.copyTo(img);
 		for (ObjectLabel& obj : objs)
 		{
-			obj.enableResizing(true);
-			obj.enableBoldness(false);
-			obj.enableTransparency(false);
-			obj.orderedThresholdingEnabled = false;
+			obj.enableResizing(atoi(argv[2]));
+			obj.enableBoldness(atoi(argv[3]));
+			obj.enableTransparency(atoi(argv[4]));
+			obj.orderedThresholdingEnabled = atoi(argv[5]);
 			obj.registerMouseInput(mouseX, mouseY);
-	        obj.display(img);
-	        imshow("original image", img);   
+			obj.forceDisplay = atoi(argv[6]);
+			obj.display(img);
+			imshow("original image", img);   
 		}
 	} while(waitKey(16) == -1);
 
