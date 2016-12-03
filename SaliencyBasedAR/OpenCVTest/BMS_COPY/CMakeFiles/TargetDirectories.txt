@@ -1,0 +1,1 @@
+/Users/yuki/CS291A/saliency/BMS/BMS_COPY/CMakeFiles/BMS.dir

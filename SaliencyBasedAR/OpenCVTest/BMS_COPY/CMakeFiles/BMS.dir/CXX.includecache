@@ -1,0 +1,36 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/Users/yuki/CS291A/saliency/BMS/BMS_COPY/BMS.cpp
+BMS.h
+/Users/yuki/CS291A/saliency/BMS/BMS_COPY/BMS.h
+vector
+-
+cmath
+-
+ctime
+-
+
+/Users/yuki/CS291A/saliency/BMS/BMS_COPY/BMS.h
+fstream
+-
+vector
+-
+opencv2/opencv.hpp
+/Users/yuki/CS291A/saliency/BMS/BMS_COPY/opencv2/opencv.hpp
+
+/Users/yuki/CS291A/saliency/BMS/BMS_COPY/main.cpp
+iostream
+-
+ctime
+-
+opencv2/opencv.hpp
+/Users/yuki/CS291A/saliency/BMS/BMS_COPY/opencv2/opencv.hpp
+BMS.h
+/Users/yuki/CS291A/saliency/BMS/BMS_COPY/BMS.h
+
