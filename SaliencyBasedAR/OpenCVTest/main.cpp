@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <fstream>
 #include <vector>
+#include <algorithm>
 
 #ifdef __APPLE__ // Not really for apple, just for Brandon's specific build...
 #include <opencv2/highgui/highgui.hpp>
@@ -34,6 +35,7 @@ struct ObjectLabel
 	static const double DEFAULT_FONT_SCALE = 0.5;
 	static const double DEFAULT_FONT_THICKNESS = 0.5;
 	static const double DISPLAY_THRESHOLD = 2; // Must be >= 2 to display
+	static const double DISPLAY_ORDER_THRESHOLD = 5; // Must be >= 2 to display
 
 	int fontFace;
 	double fontScale; // Word size
@@ -46,9 +48,12 @@ struct ObjectLabel
 
 	// Variables for specific experiments
 	int ranking; // A parameter to control whether hide or show the labels
+	int order;
 	bool resizingEnabled;
 	bool boldnessEnabled;
 	bool transparencyEnabled;
+	bool rankedThresholdingEnabled;
+	bool orderedThresholdingEnabled;
 	bool forceDisplay;
 
 	ObjectLabel() 
@@ -56,6 +61,12 @@ struct ObjectLabel
 		fontFace = FONT_HERSHEY_SIMPLEX;
 		fontScale = DEFAULT_FONT_SCALE;
 		thickness = DEFAULT_FONT_THICKNESS;
+		resizingEnabled = false;
+		boldnessEnabled = false;
+		transparencyEnabled = false;
+		rankedThresholdingEnabled = false;
+		orderedThresholdingEnabled = false;
+		forceDisplay = false;
 	}
 
     void doRankBasedResizing()
@@ -100,6 +111,11 @@ struct ObjectLabel
 		r = ir;
 		g = ig;
 		b = ib;
+	}
+
+	void setOrder(int pos)
+	{
+		order = pos;
 	}
 
     cv::Mat doLabelBasedimgCut(Mat& img)
@@ -147,7 +163,9 @@ struct ObjectLabel
 
 	void display(Mat& img)
 	{
-		if (ranking >= DISPLAY_THRESHOLD || forceDisplay)
+		if ((rankedThresholdingEnabled && (ranking >= DISPLAY_THRESHOLD)) ||
+			(orderedThresholdingEnabled && (order < DISPLAY_ORDER_THRESHOLD)) ||
+			forceDisplay)
 		{
 			// final we could make a case function...based on different value the ranking retures
 			setColor(0, 0, 255);
@@ -251,6 +269,11 @@ void readObjectLabels(string filePath, vector<ObjectLabel>& objects, const Mat& 
 	}
 }
 
+bool compareGreaterAvgSaliency(const ObjectLabel& a, const ObjectLabel& b)
+{
+	return a.averIntensity > b.averIntensity;
+}
+
 // ************ Global State **********
 int mouseX = 0;
 int mouseY = 0;
@@ -272,7 +295,8 @@ int main(int argc, char** argv){
     if (argc == 2) {
         string item_name = argv[1];
         file = item_name + ".jpg";
-	    salmapFile = item_name + "_msss.jpg.jpg";
+	    //salmapFile = item_name + "_msss.jpg.jpg";
+	    salmapFile = "salmap" + item_name + ".png";
 	    predictionsFile = item_name + "_predictions.txt";
     }
 
@@ -280,6 +304,13 @@ int main(int argc, char** argv){
 	Mat salmap = imread(salmapFile, 0); 
 	vector<ObjectLabel> objs;
 	readObjectLabels(predictionsFile, objs, salmap);
+
+	// Sort by average saliency highest to lowest
+	std::sort(objs.begin(), objs.end(), compareGreaterAvgSaliency);
+	for (int i = 0; i < objs.size(); ++i)
+	{
+		objs.at(i).setOrder(i);
+	}
 
     Mat original = imread(file);
 
@@ -292,9 +323,10 @@ int main(int argc, char** argv){
 		original.copyTo(img);
 		for (ObjectLabel& obj : objs)
 		{
-			obj.enableResizing(false);
+			obj.enableResizing(true);
 			obj.enableBoldness(false);
-			obj.enableTransparency(true);
+			obj.enableTransparency(false);
+			obj.orderedThresholdingEnabled = false;
 			obj.registerMouseInput(mouseX, mouseY);
 	        obj.display(img);
 	        imshow("original image", img);   
